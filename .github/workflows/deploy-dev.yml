@@ -23,13 +23,11 @@ jobs:
       with:
         key: ${{ secrets.PANTHEON_SSH_KEY }}
         config: ${{ vars.SSH_CONFIG }}
-        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+        known_hosts: ${{ vars.KNOWN_HOSTS }}
     - name: Install Terminus
       uses: pantheon-systems/terminus-github-actions@main
       with:
         pantheon-machine-token: ${{ secrets.TERMINUS_MACHINE_TOKEN }}
-    - name: Authenticate Terminus
-      run: terminus auth:login --machine-token ${{ secrets.TERMINUS_MACHINE_TOKEN }} --email ${{ vars.EMAIL_ADDRESS }}
     - name: Clean up multidev
       if: github.event_name == 'pull_request'
       env:
