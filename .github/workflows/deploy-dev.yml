@@ -28,6 +28,8 @@ jobs:
       uses: pantheon-systems/terminus-github-actions@main
       with:
         pantheon-machine-token: ${{ secrets.TERMINUS_MACHINE_TOKEN }}
+    - name: Authenticate Terminus
+      run: terminus auth:login --machine-token=${{ secrets.TERMINUS_MACHINE_TOKEN }}
     - name: Clean up multidev
       if: github.event_name == 'pull_request'
       env:
