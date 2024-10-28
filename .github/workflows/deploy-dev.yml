@@ -23,7 +23,7 @@ jobs:
       with:
         key: ${{ secrets.PANTHEON_SSH_KEY }}
         name: id_rsa
-        if_key_exists: fail
+        if_key_exists: replace 
         config: ${{ vars.SSH_CONFIG }}
         known_hosts: ${{ secrets.KNOWN_HOSTS }}
     - name: Install Terminus
