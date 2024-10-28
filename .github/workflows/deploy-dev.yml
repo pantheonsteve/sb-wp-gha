@@ -1,0 +1,70 @@
+name: (Auto) Deploy to Pantheon Dev
+on:
+  pull_request:
+    types: [closed]
+    branches: ["master", "main"]
+  push:
+    branches:
+      - 'master'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+      id-token: write
+    env:
+      GITHUB_CONTEXT: ${{ toJson(github) }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install SSH Key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.PANTHEON_SSH_KEY }}
+        config: ${{ vars.SSH_CONFIG }}
+        known_hosts: ${{ vars.KNOWN_HOSTS }}
+    - name: Install Terminus
+      uses: pantheon-systems/terminus-github-actions@main
+      with:
+        pantheon-machine-token: ${{ secrets.TERMINUS_MACHINE_TOKEN }}
+    - name: Clean up multidev
+      if: github.event_name == 'pull_request'
+      env:
+        PR_NUM: "pr-${{ github.event.pull_request.number }}"
+        PANTHEON_SITE: ${{ vars.PANTHEON_SITE }}
+      run: |
+        terminus env:info $PANTHEON_SITE.$PR_NUM --quiet
+        command_status=$?
+        if [ $command_status -ne 0 ]; then
+          echo "${PR_NUM} Multidev does not exist. Nothing to delete."
+        else
+         terminus env:delete $PANTHEON_SITE.$PR_NUM -y --delete-branch
+        fi 
+        # Check if PR was merged
+        if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+          echo "The PR was merged, continuing with deployment..."
+        else
+          echo "The PR was closed without merging. Exiting..."
+          exit 78 # Use exit code 78 to halt the workflow without failing
+        fi
+    - name: Deployment Processing
+      id: branch-processor
+      env:
+        CI_BRANCH: ${{ github.ref_name }}
+        TERMINUS_MACHINE_TOKEN: ${{ secrets.TERMINUS_MACHINE_TOKEN }}
+        PANTHEON_SITE: ${{ vars.PANTHEON_SITE }}
+        PANTHEON_REPO: ${{ secrets.PANTHEON_REPO }}
+      run: |
+        #!/bin/bash
+        set +e
+        # Push our github code to Pantheon
+        echo "Deploying $PANTHEON_SITE to Pantheon Dev environment"
+        git fetch --unshallow origin
+        git push --force $PANTHEON_REPO $CI_BRANCH
+        echo "URL_FRAGMENT=dev" >> $GITHUB_OUTPUT
+    - name: Create commit comment
+      uses: peter-evans/commit-comment@v1
+      with:
+        body: |
+          Pantheon Dev updated - https://${{ steps.branch-processor.outputs.URL_FRAGMENT }}-${{ vars.PANTHEON_SITE }}.pantheonsite.io
