@@ -29,7 +29,8 @@ jobs:
       with:
         pantheon-machine-token: ${{ secrets.TERMINUS_MACHINE_TOKEN }}
     - name: Authenticate Terminus
-      run: terminus auth:login --machine-token=${{ secrets.TERMINUS_MACHINE_TOKEN }}
+    terminus auth:login --machine-token MACHINE-TOKEN --email EMAIL
+      run: terminus auth:login --machine-token=${{ secrets.TERMINUS_MACHINE_TOKEN }} --email ${{ vars.EMAIL_ADDRESS }}
     - name: Clean up multidev
       if: github.event_name == 'pull_request'
       env:
